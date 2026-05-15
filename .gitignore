@@ -8,6 +8,8 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+
+ny_taxi_postgres_data/
 build/
 develop-eggs/
 dist/
