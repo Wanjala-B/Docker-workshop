@@ -178,9 +178,9 @@ LIMIT 10;
 ## Top Pickup Locations
 
 ```sql
-SELECT PULocationID, COUNT(*) AS trips
+SELECT "PULocationID", COUNT(*) AS trips
 FROM yellow_taxi_trips
-GROUP BY PULocationID
+GROUP BY "PULocationID"
 ORDER BY trips DESC
 LIMIT 10;
 ```
