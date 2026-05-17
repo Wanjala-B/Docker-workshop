@@ -31,24 +31,32 @@ parse_dates = ["tpep_pickup_datetime", "tpep_dropoff_datetime"]
 @click.option("--pg-host", default="localhost")
 @click.option("--pg-port", default=5432, type=int)
 @click.option("--pg-db", default="ny_taxi")
-@click.option("--target-table", default="yellow_taxi_data")
+@click.option("--target-table", default="yellow_taxi_trips")
 def run(pg_user, pg_pass, pg_host, pg_port, pg_db, target_table):
 
     url = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/"
     file_name = "yellow_tripdata_2021-01.csv.gz"
 
-    engine = create_engine(f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}")
+    print("Connecting to Postgres...")
+
+    engine = create_engine(
+        f"postgresql+psycopg://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
+    )
+
+    print("Reading CSV in chunks...")
 
     df_iter = pd.read_csv(
         url + file_name,
         dtype=dtype,
         parse_dates=parse_dates,
         iterator=True,
-        chunksize=10000
+        chunksize=1000
     )
 
     first_chunk = next(df_iter)
+    print("First chunk rows:", len(first_chunk))
 
+    print("Creating table schema...")
     first_chunk.head(0).to_sql(
         name=target_table,
         con=engine,
@@ -56,6 +64,7 @@ def run(pg_user, pg_pass, pg_host, pg_port, pg_db, target_table):
         index=False
     )
 
+    print("Inserting first chunk...")
     first_chunk.to_sql(
         name=target_table,
         con=engine,
@@ -63,6 +72,8 @@ def run(pg_user, pg_pass, pg_host, pg_port, pg_db, target_table):
         index=False,
         method="multi"
     )
+
+    total_rows = len(first_chunk)
 
     for df_chunk in tqdm(df_iter):
         df_chunk.to_sql(
@@ -72,7 +83,10 @@ def run(pg_user, pg_pass, pg_host, pg_port, pg_db, target_table):
             index=False,
             method="multi"
         )
+        total_rows += len(df_chunk)
 
-print("Ingestion complete")
+    print("Ingestion complete. Total rows inserted:", total_rows)
+
+
 if __name__ == "__main__":
     run()
